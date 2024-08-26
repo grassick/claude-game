@@ -3,17 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Space Invaders</title>
+    <title>Pong</title>
     <style>
+        body {
+            display: flex
+            justify-content: center
+            align-items: center
+            height: 100vh
+            margin: 0
+            background-color: black
+        }
         canvas {
-            border: 1px solid black
-            display: block
-            margin: 0 auto
+            border: 2px solid white
         }
     </style>
 </head>
 <body>
-    <canvas id="gameCanvas" width="800" height="600"></canvas>
+    <canvas id="gameCanvas" width="800" height="400"></canvas>
     <script src="game.js"></script>
 </body>
 </html>

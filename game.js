@@ -1,110 +1,158 @@
 const canvas = document.getElementById('gameCanvas')
 const ctx = canvas.getContext('2d')
 
-// Player
-const player = {
+// Set canvas size
+canvas.width = 600
+canvas.height = 600
+
+// Paddles
+const paddleWidth = 100
+const paddleHeight = 10
+const paddleSpeed = 8
+
+const topPaddle = { x: canvas.width / 2 - paddleWidth / 2, y: 10, width: paddleWidth, height: paddleHeight, color: 'blue' }
+const bottomPaddle = { x: canvas.width / 2 - paddleWidth / 2, y: canvas.height - 20, width: paddleWidth, height: paddleHeight, color: 'red' }
+const leftPaddle = { x: 10, y: canvas.height / 2 - paddleWidth / 2, width: paddleHeight, height: paddleWidth, color: 'green' }
+const rightPaddle = { x: canvas.width - 20, y: canvas.height / 2 - paddleWidth / 2, width: paddleHeight, height: paddleWidth, color: 'yellow' }
+
+// Ball
+const ball = {
     x: canvas.width / 2,
-    y: canvas.height - 50,
-    width: 30,
-    height: 50,
-    color: 'blue',
-    speed: 5
+    y: canvas.height / 2,
+    radius: 5,
+    dx: 0,
+    dy: 0,
+    speed: 4
 }
 
-// Bullets
-const bullets = []
-const bulletSpeed = 7
+let score = 0
+let timeLeft = 60
+let gameOver = false
+let highScore = localStorage.getItem('highScore') || 0
 
-// Enemies
-const enemies = []
-const enemyRows = 3
-const enemiesPerRow = 8
-const enemySpeed = 1
+function drawPaddle(paddle) {
+    ctx.fillStyle = paddle.color
+    ctx.fillRect(paddle.x, paddle.y, paddle.width, paddle.height)
+}
 
-// Initialize enemies
-for (let i = 0; i < enemyRows; i++) {
-    for (let j = 0; j < enemiesPerRow; j++) {
-        enemies.push({
-            x: j * 70 + 50,
-            y: i * 50 + 30,
-            width: 40,
-            height: 30,
-            color: 'green',
-            speed: enemySpeed
-        })
+function drawBall() {
+    ctx.fillStyle = 'white'
+    ctx.beginPath()
+    ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2)
+    ctx.fill()
+}
+
+function drawScore() {
+    ctx.fillStyle = 'white'
+    ctx.font = '24px Arial'
+    ctx.textAlign = 'center'
+    ctx.fillText(`Time: ${timeLeft}`, canvas.width / 2, 30)
+    ctx.fillText(`Score: ${score}`, canvas.width / 2, 60)
+}
+
+function movePaddles() {
+    if (keys.ArrowLeft) {
+        topPaddle.x = Math.max(0, topPaddle.x - paddleSpeed)
+        bottomPaddle.x = Math.max(0, bottomPaddle.x - paddleSpeed)
+    }
+    if (keys.ArrowRight) {
+        topPaddle.x = Math.min(canvas.width - paddleWidth, topPaddle.x + paddleSpeed)
+        bottomPaddle.x = Math.min(canvas.width - paddleWidth, bottomPaddle.x + paddleSpeed)
+    }
+    if (keys.ArrowUp) {
+        leftPaddle.y = Math.max(0, leftPaddle.y - paddleSpeed)
+        rightPaddle.y = Math.max(0, rightPaddle.y - paddleSpeed)
+    }
+    if (keys.ArrowDown) {
+        leftPaddle.y = Math.min(canvas.height - paddleWidth, leftPaddle.y + paddleSpeed)
+        rightPaddle.y = Math.min(canvas.height - paddleWidth, rightPaddle.y + paddleSpeed)
     }
 }
 
-// Game loop
+function moveBall() {
+    ball.x += ball.dx
+    ball.y += ball.dy
+
+    // Wall collisions
+    if (ball.x - ball.radius < 0 || ball.x + ball.radius > canvas.width) {
+        ball.dx = -ball.dx
+    }
+    if (ball.y - ball.radius < 0 || ball.y + ball.radius > canvas.height) {
+        ball.dy = -ball.dy
+    }
+
+    // Paddle collisions
+    if (ball.y - ball.radius < topPaddle.y + topPaddle.height && 
+        ball.x > topPaddle.x && ball.x < topPaddle.x + topPaddle.width) {
+        ball.dy = Math.abs(ball.dy)
+        score++
+    }
+    if (ball.y + ball.radius > bottomPaddle.y && 
+        ball.x > bottomPaddle.x && ball.x < bottomPaddle.x + bottomPaddle.width) {
+        ball.dy = -Math.abs(ball.dy)
+        score++
+    }
+    if (ball.x - ball.radius < leftPaddle.x + leftPaddle.width && 
+        ball.y > leftPaddle.y && ball.y < leftPaddle.y + leftPaddle.height) {
+        ball.dx = Math.abs(ball.dx)
+        score++
+    }
+    if (ball.x + ball.radius > rightPaddle.x && 
+        ball.y > rightPaddle.y && ball.y < rightPaddle.y + rightPaddle.height) {
+        ball.dx = -Math.abs(ball.dx)
+        score++
+    }
+}
+
+function resetBall() {
+    ball.x = canvas.width / 2
+    ball.y = canvas.height / 2
+    const angle = Math.random() * Math.PI * 2
+    ball.dx = Math.cos(angle) * ball.speed
+    ball.dy = Math.sin(angle) * ball.speed
+}
+
+function drawGameOver() {
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.75)'
+    ctx.fillRect(0, 0, canvas.width, canvas.height)
+    ctx.fillStyle = 'white'
+    ctx.font = '48px Arial'
+    ctx.textAlign = 'center'
+    ctx.fillText('Game Over!', canvas.width / 2, canvas.height / 2 - 50)
+    ctx.font = '24px Arial'
+    ctx.fillText(`Your Score: ${score}`, canvas.width / 2, canvas.height / 2)
+    ctx.fillText(`High Score: ${highScore}`, canvas.width / 2, canvas.height / 2 + 30)
+    ctx.fillText('Press Enter to restart', canvas.width / 2, canvas.height / 2 + 70)
+}
+
+function updateTimer() {
+    timeLeft--
+    if (timeLeft <= 0) {
+        gameOver = true
+        if (score > highScore) {
+            highScore = score
+            localStorage.setItem('highScore', highScore)
+        }
+    }
+}
+
 function gameLoop() {
-    // Clear canvas
-    ctx.clearRect(0, 0, canvas.width, canvas.height)
+    ctx.fillStyle = 'black'
+    ctx.fillRect(0, 0, canvas.width, canvas.height)
 
-    // Draw and move player
-    ctx.fillStyle = player.color
-    ctx.fillRect(player.x, player.y, player.width, player.height)
-    
-    if (keys.ArrowLeft && player.x > 0) player.x -= player.speed
-    if (keys.ArrowRight && player.x < canvas.width - player.width) player.x += player.speed
-    if (keys.ArrowUp && player.y > 0) player.y -= player.speed
-    if (keys.ArrowDown && player.y < canvas.height - player.height) player.y += player.speed
+    if (gameOver) {
+        drawGameOver()
+    } else {
+        drawPaddle(topPaddle)
+        drawPaddle(bottomPaddle)
+        drawPaddle(leftPaddle)
+        drawPaddle(rightPaddle)
+        drawBall()
+        drawScore()
 
-    // Shoot bullets
-    if (keys.Space && bullets.length < 5) {
-        bullets.push({
-            x: player.x + player.width / 2,
-            y: player.y,
-            width: 5,
-            height: 10,
-            color: 'red'
-        })
+        movePaddles()
+        moveBall()
     }
-
-    // Move and draw bullets
-    bullets.forEach((bullet, index) => {
-        bullet.y -= bulletSpeed
-        ctx.fillStyle = bullet.color
-        ctx.fillRect(bullet.x, bullet.y, bullet.width, bullet.height)
-
-        // Remove bullets that are off screen
-        if (bullet.y < 0) bullets.splice(index, 1)
-    })
-
-    // Move and draw enemies
-    enemies.forEach((enemy, index) => {
-        enemy.y += enemy.speed
-        ctx.fillStyle = enemy.color
-        ctx.fillRect(enemy.x, enemy.y, enemy.width, enemy.height)
-
-        // Check for collision with player
-        if (
-            enemy.x < player.x + player.width &&
-            enemy.x + enemy.width > player.x &&
-            enemy.y < player.y + player.height &&
-            enemy.y + enemy.height > player.y
-        ) {
-            alert('Game Over!')
-            location.reload()
-        }
-
-        // Check for collision with bullets
-        bullets.forEach((bullet, bulletIndex) => {
-            if (
-                bullet.x < enemy.x + enemy.width &&
-                bullet.x + bullet.width > enemy.x &&
-                bullet.y < enemy.y + enemy.height &&
-                bullet.y + bullet.height > enemy.y
-            ) {
-                enemies.splice(index, 1)
-                bullets.splice(bulletIndex, 1)
-            }
-        })
-
-        // Reset enemy position if it reaches bottom
-        if (enemy.y > canvas.height) {
-            enemy.y = 0
-        }
-    })
 
     requestAnimationFrame(gameLoop)
 }
@@ -114,11 +162,25 @@ const keys = {}
 
 document.addEventListener('keydown', e => {
     keys[e.code] = true
+    if (e.code === 'Enter' && gameOver) {
+        resetGame()
+    }
 })
 
 document.addEventListener('keyup', e => {
     keys[e.code] = false
 })
 
+function resetGame() {
+    gameOver = false
+    score = 0
+    timeLeft = 60
+    resetBall()
+    topPaddle.x = bottomPaddle.x = canvas.width / 2 - paddleWidth / 2
+    leftPaddle.y = rightPaddle.y = canvas.height / 2 - paddleWidth / 2
+}
+
 // Start the game
+resetGame()
+setInterval(updateTimer, 1000)
 gameLoop()
