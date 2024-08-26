@@ -1,34 +1,73 @@
 const canvas = document.getElementById('gameCanvas')
 const ctx = canvas.getContext('2d')
 
-// Set canvas size
-canvas.width = 600
-canvas.height = 600
-
 // Paddles
 const paddleWidth = 100
 const paddleHeight = 10
-const paddleSpeed = 8
+let paddleSpeed = 8
 
-const topPaddle = { x: canvas.width / 2 - paddleWidth / 2, y: 10, width: paddleWidth, height: paddleHeight, color: 'blue' }
-const bottomPaddle = { x: canvas.width / 2 - paddleWidth / 2, y: canvas.height - 20, width: paddleWidth, height: paddleHeight, color: 'red' }
-const leftPaddle = { x: 10, y: canvas.height / 2 - paddleWidth / 2, width: paddleHeight, height: paddleWidth, color: 'green' }
-const rightPaddle = { x: canvas.width - 20, y: canvas.height / 2 - paddleWidth / 2, width: paddleHeight, height: paddleWidth, color: 'yellow' }
+const topPaddle = { x: 0, y: 10, width: paddleWidth, height: paddleHeight, color: 'blue' }
+const bottomPaddle = { x: 0, y: 0, width: paddleWidth, height: paddleHeight, color: 'red' }
+const leftPaddle = { x: 10, y: 0, width: paddleHeight, height: paddleWidth, color: 'green' }
+const rightPaddle = { x: 0, y: 0, width: paddleHeight, height: paddleWidth, color: 'yellow' }
 
 // Ball
 const ball = {
-    x: canvas.width / 2,
-    y: canvas.height / 2,
+    x: 0,
+    y: 0,
     radius: 5,
     dx: 0,
     dy: 0,
     speed: 4
 }
 
-let score = 0
-let timeLeft = 60
-let gameOver = false
-let highScore = localStorage.getItem('highScore') || 0
+// Set canvas size to fullscreen
+function resizeCanvas() {
+    canvas.width = document.documentElement.clientWidth
+    canvas.height = document.documentElement.clientHeight
+    // Recalculate paddle positions after resize
+    topPaddle.x = bottomPaddle.x = canvas.width / 2 - paddleWidth / 2
+    leftPaddle.y = rightPaddle.y = canvas.height / 2 - paddleWidth / 2
+    bottomPaddle.y = canvas.height - 20
+    rightPaddle.x = canvas.width - 20
+    // Recenter ball
+    ball.x = canvas.width / 2
+    ball.y = canvas.height / 2
+}
+
+// Call resizeCanvas initially and add event listener
+resizeCanvas()
+window.addEventListener('resize', resizeCanvas)
+
+// Keyboard input
+const keys = {}
+
+document.addEventListener('keydown', e => {
+    keys[e.code] = true
+    if (e.code === 'Enter' && gameOver) {
+        resetGame()
+    }
+})
+
+document.addEventListener('keyup', e => {
+    keys[e.code] = false
+})
+
+function resetGame() {
+    gameOver = false
+    score = 0
+    timeLeft = 60
+    paddleSpeed = 8
+    ball.speed = 4
+    resetBall()
+    topPaddle.x = bottomPaddle.x = canvas.width / 2 - paddleWidth / 2
+    leftPaddle.y = rightPaddle.y = canvas.height / 2 - paddleWidth / 2
+}
+
+// Start the game
+resetGame()
+setInterval(updateTimer, 1000)
+gameLoop()
 
 function drawPaddle(paddle) {
     ctx.fillStyle = paddle.color
@@ -133,6 +172,13 @@ function updateTimer() {
             highScore = score
             localStorage.setItem('highScore', highScore)
         }
+    } else {
+        // Increase speed as time runs out
+        const speedMultiplier = 1 + (60 - timeLeft) / 60
+        paddleSpeed = 8 * speedMultiplier
+        ball.speed = 4 * speedMultiplier
+        ball.dx = Math.sign(ball.dx) * ball.speed
+        ball.dy = Math.sign(ball.dy) * ball.speed
     }
 }
 
@@ -156,31 +202,3 @@ function gameLoop() {
 
     requestAnimationFrame(gameLoop)
 }
-
-// Keyboard input
-const keys = {}
-
-document.addEventListener('keydown', e => {
-    keys[e.code] = true
-    if (e.code === 'Enter' && gameOver) {
-        resetGame()
-    }
-})
-
-document.addEventListener('keyup', e => {
-    keys[e.code] = false
-})
-
-function resetGame() {
-    gameOver = false
-    score = 0
-    timeLeft = 60
-    resetBall()
-    topPaddle.x = bottomPaddle.x = canvas.width / 2 - paddleWidth / 2
-    leftPaddle.y = rightPaddle.y = canvas.height / 2 - paddleWidth / 2
-}
-
-// Start the game
-resetGame()
-setInterval(updateTimer, 1000)
-gameLoop()
