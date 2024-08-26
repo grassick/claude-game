@@ -84,8 +84,10 @@ const keys = {}
 
 document.addEventListener('keydown', e => {
     keys[e.code] = true
-    if (e.code === 'Enter' && gameOver) {
-        showHomeScreen()
+    if (e.code === 'Enter') {
+        if (gameOver || !isPlayTime()) {
+            showHomeScreen()
+        }
     }
 })
 
@@ -105,17 +107,70 @@ function resetGame(duration) {
 }
 
 function showHomeScreen() {
+    if (!isPlayTime()) {
+        showTimeRestrictionAlert()
+        return
+    }
     homeScreen.style.display = 'flex'
     canvas.style.display = 'none'
+    clearInterval(timeCheckInterval)
 }
 
 function startGame(duration) {
+    if (!isPlayTime()) {
+        showTimeRestrictionAlert()
+        return
+    }
     homeScreen.style.display = 'none'
     canvas.style.display = 'block'
     resetGame(duration)
-    resetGame.lastDuration = duration // Store the last duration
-    lastTime = 0 // Reset lastTime
-    requestAnimationFrame(gameLoop)
+    resetGame.lastDuration = duration
+    lastTime = 0
+    gameLoopId = requestAnimationFrame(gameLoop)
+    startTimeCheck()
+}
+
+let timeCheckInterval
+
+// Function to start time checking
+function startTimeCheck() {
+    timeCheckInterval = setInterval(() => {
+        if (!isPlayTime()) {
+            showTimeRestrictionAlert()
+            clearInterval(timeCheckInterval)
+        }
+    }, 60000) // Check every minute
+}
+
+// Function to check if it's play time
+function isPlayTime() {
+    const currentHour = new Date().getHours()
+    return currentHour >= 7 && currentHour < 19
+}
+
+// Function to show time restriction message on screen
+function showTimeRestrictionMessage() {
+    ctx.fillStyle = 'black'
+    ctx.fillRect(0, 0, canvas.width, canvas.height)
+    ctx.fillStyle = 'white'
+    ctx.font = '36px Arial'
+    ctx.textAlign = 'center'
+    ctx.fillText("It's not time to play.", canvas.width / 2, canvas.height / 2 - 40)
+    ctx.font = '24px Arial'
+    ctx.fillText("Please come back between 7am and 7pm.", canvas.width / 2, canvas.height / 2 + 10)
+    ctx.fillText("Press Enter to return to home screen", canvas.width / 2, canvas.height / 2 + 50)
+}
+
+// Modify the showTimeRestrictionAlert function
+function showTimeRestrictionAlert() {
+    cancelAnimationFrame(gameLoopId)
+    showTimeRestrictionMessage()
+}
+
+// Function to stop the game
+function stopGame() {
+    cancelAnimationFrame(gameLoopId)
+    showHomeScreen()
 }
 
 function drawPaddle(paddle) {
@@ -235,7 +290,12 @@ function updateTimer(deltaTime) {
     }
 }
 
+let gameLoopId
 function gameLoop(currentTime) {
+    if (!isPlayTime()) {
+        showTimeRestrictionAlert()
+        return
+    }
     if (lastTime === 0) {
         lastTime = currentTime;
     }
@@ -256,9 +316,17 @@ function gameLoop(currentTime) {
         moveBall();
 
         updateTimer(deltaTime);
-        requestAnimationFrame(gameLoop);
+        if (!gameOver) {
+            gameLoopId = requestAnimationFrame(gameLoop);
+        }
     }
 }
 
-// Start with the home screen
-showHomeScreen()
+// Start with the home screen and time check
+if (isPlayTime()) {
+    showHomeScreen()
+} else {
+    canvas.style.display = 'block'
+    homeScreen.style.display = 'none'
+    showTimeRestrictionMessage()
+}
