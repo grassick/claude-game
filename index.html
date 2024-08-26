@@ -6,22 +6,50 @@
     <title>Pong</title>
     <style>
         html, body {
-            margin: 0px;
-            padding: 0px;
+            margin: 0;
+            padding: 0;
             width: 100%;
             height: 100%;
             overflow: hidden;
-            background-color: black
+            background-color: black;
         }
-        canvas {
+        canvas, #homeScreen {
             display: block;
             width: 100%;
             height: 100%;
         }
+        #homeScreen {
+            color: white;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-family: Arial, sans-serif;
+        }
+        button {
+            margin: 10px;
+            padding: 10px 20px;
+            font-size: 18px;
+        }
     </style>
 </head>
 <body>
-    <canvas id="gameCanvas"></canvas>
+    <div id="homeScreen">
+        <h1>Pong Game</h1>
+        <p>Choose game duration:</p>
+        <div>
+            <button onclick="startGame(1)">1 Minute</button>
+            <button onclick="startGame(2)">2 Minutes</button>
+            <button onclick="startGame(3)">3 Minutes</button>
+            <button onclick="startGame(4)">4 Minutes</button>
+            <button onclick="startGame(5)">5 Minutes</button>
+        </div>
+    </div>
+    <canvas id="gameCanvas" style="display: none;"></canvas>
+    <audio id="backgroundMusic" loop>
+        <source src="background_music.mp3" type="audio/mpeg">
+        Your browser does not support the audio element.
+    </audio>
     <script src="game.js"></script>
 </body>
 </html>
