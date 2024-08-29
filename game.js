@@ -260,5 +260,15 @@ function gameLoop(currentTime) {
     }
 }
 
-// Start with the home screen
-showHomeScreen()
+// Check if it's between 7 p.m. and 7 a.m.
+function isNightTime() {
+    const currentHour = new Date().getHours()
+    return currentHour >= 19 || currentHour < 7
+}
+
+// Start with the home screen or show alert
+if (isNightTime()) {
+    alert("It's not the time to play. Please come back between 7 a.m. and 7 p.m.")
+} else {
+    showHomeScreen()
+}
